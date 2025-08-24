@@ -1,0 +1,533 @@
+<!-- -----------------------------------------------------------------------------
+Project: Unified Communication Platform
+Author: Abubacker Siddiq M
+Copyright (c) 2025 Abubacker Siddiq M
+License: MIT License (See LICENSE file for details)
+------------------------------------------------------------------------------- -->
+
+{% extends "base.html" %}
+
+{% block title %}Profile - UCP{% endblock %}
+
+{% block page_title %}User Profile{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-outline-primary" onclick="editProfile()">
+        <i class="fas fa-edit"></i> Edit Profile
+    </button>
+    <button type="button" class="btn btn-outline-warning" onclick="changePassword()">
+        <i class="fas fa-key"></i> Change Password
+    </button>
+    <a href="{{ url_for('auth.generate_qr_code') }}" class="btn btn-outline-info">
+        <i class="fas fa-qrcode"></i> QR Code
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Change Password</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="mb-3">
+                        <label for="currentPassword" class="form-label">Current Password *</label>
+                        <input type="password" class="form-control" id="currentPassword" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="newPassword" class="form-label">New Password *</label>
+                        <input type="password" class="form-control" id="newPassword" required>
+                        <small class="text-muted">Password must be at least 8 characters long</small>
+                    </div>
+                    <div class="mb-3">
+                        <label for="confirmPassword" class="form-label">Confirm New Password *</label>
+                        <input type="password" class="form-control" id="confirmPassword" required>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="savePassword()">
+                    <span class="loading-spinner" id="savePasswordSpinner" style="display: none;"></span>
+                    Change Password
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Change Avatar Modal -->
+<div class="modal fade" id="changeAvatarModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Change Avatar</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="changeAvatarForm">
+                    <div class="mb-3">
+                        <label for="avatarFile" class="form-label">Select Image</label>
+                        <input type="file" class="form-control" id="avatarFile" accept="image/*">
+                        <small class="text-muted">Maximum file size: 2MB. Supported formats: JPG, PNG, GIF</small>
+                    </div>
+                    <div class="mb-3">
+                        <div id="avatarPreview" class="text-center" style="display: none;">
+                            <img id="previewImage" class="rounded-circle" style="width: 150px; height: 150px; object-fit: cover;">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveAvatar()">
+                    <span class="loading-spinner" id="saveAvatarSpinner" style="display: none;"></span>
+                    Upload Avatar
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Profile Information -->
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Profile Information</h6>
+                <button class="btn btn-primary btn-sm" onclick="editProfile()">
+                    <i class="fas fa-edit"></i> Edit Profile
+                </button>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 text-center mb-3">
+                        <div class="avatar-container">
+                            <img id="userAvatar" src="{{ current_user.avatar_url or url_for('static', filename='img/default-avatar.png') }}" 
+                                 class="rounded-circle" style="width: 120px; height: 120px; object-fit: cover;">
+                            <button class="btn btn-sm btn-outline-primary avatar-edit-btn" onclick="showChangeAvatarModal()">
+                                <i class="fas fa-camera"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="col-md-9">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Username</label>
+                                <p class="form-control-plaintext" id="displayUsername">{{ current_user.username }}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Email</label>
+                                <p class="form-control-plaintext" id="displayEmail">{{ current_user.email }}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Full Name</label>
+                                <p class="form-control-plaintext" id="displayFullName">{{ current_user.full_name or 'Not set' }}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Phone</label>
+                                <p class="form-control-plaintext" id="displayPhone">{{ current_user.phone_number or 'Not set' }}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Role</label>
+                                <p class="form-control-plaintext">
+                                    <span class="badge bg-{{ 'danger' if current_user.role and current_user.role.name == 'Admin' else 'warning' if current_user.role and current_user.role.name == 'Agent' else 'secondary' }}">
+                                        {{ current_user.role.name if current_user.role else 'No Role' }}
+                                    </span>
+                                </p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Status</label>
+                                <p class="form-control-plaintext">
+                                    <span class="badge bg-{{ 'success' if current_user.status == 'Available' else 'warning' if current_user.status == 'Away' else 'danger' if current_user.status == 'DND' else 'secondary' }}">
+                                        {{ current_user.status }}
+                                    </span>
+                                </p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Member Since</label>
+                                <p class="form-control-plaintext">{{ current_user.created_at.strftime('%B %d, %Y') if current_user.created_at else 'Unknown' }}</p>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label fw-bold">Last Seen</label>
+                                <p class="form-control-plaintext">{{ current_user.last_seen.strftime('%B %d, %Y %H:%M') if current_user.last_seen else 'Never' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Security Settings -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Security Settings</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <h6>Password</h6>
+                        <p class="text-muted">Last changed: {{ current_user.password_changed_at.strftime('%B %d, %Y') if current_user.password_changed_at else 'Unknown' }}</p>
+                        <button class="btn btn-outline-primary btn-sm" onclick="showChangePasswordModal()">
+                            <i class="fas fa-key"></i> Change Password
+                        </button>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <h6>Two-Factor Authentication</h6>
+                        <p class="text-muted">Add an extra layer of security to your account</p>
+                        <button class="btn btn-outline-success btn-sm" onclick="setupTwoFactor()">
+                            <i class="fas fa-shield-alt"></i> Setup 2FA
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Status and Quick Actions -->
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Status & Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Current Status</label>
+                    <select class="form-select" id="statusSelect" onchange="updateStatus(this.value)">
+                        <option value="Available" {% if current_user.status == 'Available' %}selected{% endif %}>Available</option>
+                        <option value="Away" {% if current_user.status == 'Away' %}selected{% endif %}>Away</option>
+                        <option value="DND" {% if current_user.status == 'DND' %}selected{% endif %}>Do Not Disturb</option>
+                        <option value="Busy" {% if current_user.status == 'Busy' %}selected{% endif %}>Busy</option>
+                    </select>
+                </div>
+                
+                <hr>
+                
+                <div class="mb-3">
+                    <h6>Quick Actions</h6>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-outline-primary btn-sm" onclick="showChangeAvatarModal()">
+                            <i class="fas fa-camera"></i> Change Avatar
+                        </button>
+                        <button class="btn btn-outline-warning btn-sm" onclick="showChangePasswordModal()">
+                            <i class="fas fa-key"></i> Change Password
+                        </button>
+                        <button class="btn btn-outline-info btn-sm" onclick="downloadProfile()">
+                            <i class="fas fa-download"></i> Download Profile Data
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Activity Summary -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Activity Summary</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 mb-3">
+                        <div class="h4 text-primary" id="totalCalls">0</div>
+                        <small class="text-muted">Total Calls</small>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="h4 text-success" id="totalMessages">0</div>
+                        <small class="text-muted">Messages</small>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="h4 text-warning" id="totalVoicemails">0</div>
+                        <small class="text-muted">Voicemails</small>
+                    </div>
+                    <div class="col-6 mb-3">
+                        <div class="h4 text-info" id="totalContacts">0</div>
+                        <small class="text-muted">Contacts</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function editProfile() {
+    // Enable inline editing for profile fields
+    const fields = ['displayUsername', 'displayEmail', 'displayFullName', 'displayPhone'];
+    
+    fields.forEach(fieldId => {
+        const element = document.getElementById(fieldId);
+        const currentValue = element.textContent;
+        
+        if (element.classList.contains('editing')) {
+            return;
+        }
+        
+        element.classList.add('editing');
+        element.innerHTML = `
+            <input type="text" class="form-control" value="${currentValue}" 
+                   onblur="saveField('${fieldId}', this.value)" 
+                   onkeypress="if(event.key==='Enter') this.blur()">
+        `;
+        element.querySelector('input').focus();
+    });
+}
+
+function saveField(fieldId, value) {
+    if (!value.trim()) {
+        toast.error('Please enter a value');
+        return;
+    }
+    
+    const fieldMap = {
+        'displayUsername': 'username',
+        'displayEmail': 'email',
+        'displayFullName': 'full_name',
+        'displayPhone': 'phone_number'
+    };
+    
+    const fieldName = fieldMap[fieldId];
+    if (!fieldName) return;
+    
+    fetch('/api/update-profile', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            field: fieldName,
+            value: value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            const element = document.getElementById(fieldId);
+            element.classList.remove('editing');
+            element.textContent = value;
+            toast.success('Profile updated successfully!');
+        } else {
+            toast.error('Error updating profile: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        toast.error('Error updating profile');
+    });
+}
+
+function showChangePasswordModal() {
+    document.getElementById('changePasswordForm').reset();
+    new bootstrap.Modal(document.getElementById('changePasswordModal')).show();
+}
+
+function savePassword() {
+    const currentPassword = document.getElementById('currentPassword').value;
+    const newPassword = document.getElementById('newPassword').value;
+    const confirmPassword = document.getElementById('confirmPassword').value;
+    
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        toast.error('Please fill in all fields');
+        return;
+    }
+    
+    if (newPassword.length < 8) {
+        toast.error('Password must be at least 8 characters long');
+        return;
+    }
+    
+    if (newPassword !== confirmPassword) {
+        toast.error('New passwords do not match');
+        return;
+    }
+    
+    const spinner = document.getElementById('savePasswordSpinner');
+    spinner.style.display = 'inline-block';
+    
+    fetch('/api/change-password', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            current_password: currentPassword,
+            new_password: newPassword
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        spinner.style.display = 'none';
+        if (data.success) {
+            toast.success('Password changed successfully');
+            bootstrap.Modal.getInstance(document.getElementById('changePasswordModal')).hide();
+        } else {
+            toast.error('Error changing password: ' + data.error);
+        }
+    })
+    .catch(error => {
+        spinner.style.display = 'none';
+        console.error('Error:', error);
+        toast.error('Error changing password');
+    });
+}
+
+function showChangeAvatarModal() {
+    new bootstrap.Modal(document.getElementById('changeAvatarModal')).show();
+}
+
+function saveAvatar() {
+    const fileInput = document.getElementById('avatarFile');
+    const file = fileInput.files[0];
+    
+    if (!file) {
+        toast.error('Please select an image file');
+        return;
+    }
+    
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+        toast.error('File size must be less than 2MB');
+        return;
+    }
+    
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif'];
+    if (!allowedTypes.includes(file.type)) {
+        toast.error('Please select a valid image file (JPG, PNG, GIF)');
+        return;
+    }
+    
+    const spinner = document.getElementById('saveAvatarSpinner');
+    spinner.style.display = 'inline-block';
+    
+    const formData = new FormData();
+    formData.append('avatar', file);
+    
+    fetch('/api/upload-avatar', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        spinner.style.display = 'none';
+        if (data.success) {
+            document.getElementById('userAvatar').src = data.avatar_url;
+            toast.success('Avatar updated successfully');
+            bootstrap.Modal.getInstance(document.getElementById('changeAvatarModal')).hide();
+        } else {
+            toast.error('Error uploading avatar: ' + data.error);
+        }
+    })
+    .catch(error => {
+        spinner.style.display = 'none';
+        console.error('Error:', error);
+        toast.error('Error uploading avatar');
+    });
+}
+
+function updateStatus(status) {
+    fetch('/api/update-status', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: status })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            toast.success(`Status updated to ${status}`);
+        } else {
+            toast.error('Error updating status: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        toast.error('Error updating status');
+    });
+}
+
+function setupTwoFactor() {
+    toast.info('Two-factor authentication setup coming soon!');
+}
+
+function downloadProfile() {
+    fetch('/api/download-profile')
+        .then(response => response.blob())
+        .then(blob => {
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'profile_data.json';
+            document.body.appendChild(a);
+            a.click();
+            window.URL.revokeObjectURL(url);
+            document.body.removeChild(a);
+            toast.success('Profile data downloaded successfully');
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            toast.error('Error downloading profile data');
+        });
+}
+
+function loadActivitySummary() {
+    fetch('/api/user-activity')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                document.getElementById('totalCalls').textContent = data.stats.total_calls || 0;
+                document.getElementById('totalMessages').textContent = data.stats.total_messages || 0;
+                document.getElementById('totalVoicemails').textContent = data.stats.voicemails || 0;
+                document.getElementById('totalContacts').textContent = data.stats.contacts || 0;
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+        });
+}
+
+// Avatar preview
+document.getElementById('avatarFile').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('previewImage').src = e.target.result;
+            document.getElementById('avatarPreview').style.display = 'block';
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+// Load activity summary when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadActivitySummary();
+});
+</script>
+
+<style>
+.avatar-container {
+    position: relative;
+    display: inline-block;
+}
+
+.avatar-edit-btn {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    border-radius: 50%;
+    width: 35px;
+    height: 35px;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+</style>
+{% endblock %} 

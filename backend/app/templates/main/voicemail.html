@@ -1,0 +1,492 @@
+<!-- -----------------------------------------------------------------------------
+Project: Unified Communication Platform
+Author: Abubacker Siddiq M
+Copyright (c) 2025 Abubacker Siddiq M
+License: MIT License (See LICENSE file for details)
+------------------------------------------------------------------------------- -->
+
+{% extends "base.html" %}
+
+{% block title %}Voicemail - UCP{% endblock %}
+
+{% block page_title %}Voicemail{% endblock %}
+
+{% block content %}
+<!-- Voicemail Settings Modal -->
+<div class="modal fade" id="voicemailSettingsModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Voicemail Settings</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="voicemailSettingsForm">
+                    <div class="mb-3">
+                        <label class="form-label">Greeting Message</label>
+                        <select class="form-select" id="greetingType">
+                            <option value="default">Default Greeting</option>
+                            <option value="custom">Custom Greeting</option>
+                            <option value="busy">Busy Greeting</option>
+                            <option value="unavailable">Unavailable Greeting</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Ring Time (seconds)</label>
+                        <input type="number" class="form-control" id="ringTime" value="30" min="5" max="60">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email Notifications</label>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="emailNotifications" checked>
+                            <label class="form-check-label" for="emailNotifications">
+                                Send email notifications for new voicemails
+                            </label>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Auto-Delete After (days)</label>
+                        <input type="number" class="form-control" id="autoDeleteDays" value="30" min="1" max="365">
+                        <small class="text-muted">Set to 0 to never auto-delete</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">PIN Code</label>
+                        <input type="password" class="form-control" id="voicemailPin" placeholder="Enter PIN for voicemail access">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveVoicemailSettings()">
+                    <span class="loading-spinner" id="saveSettingsSpinner" style="display: none;"></span>
+                    Save Settings
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Audio Player Modal -->
+<div class="modal fade" id="audioPlayerModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Voicemail Player</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body text-center">
+                <div id="playerInfo" class="mb-3">
+                    <h6 id="callerName">Unknown Caller</h6>
+                    <p class="text-muted" id="callTime">Unknown time</p>
+                </div>
+                <audio id="audioPlayer" controls style="width: 100%;">
+                    Your browser does not support the audio element.
+                </audio>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                <button type="button" class="btn btn-primary" onclick="downloadVoicemail()">
+                    <i class="fas fa-download"></i> Download
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Voicemail Messages</h6>
+                <div>
+                    <button class="btn btn-outline-secondary btn-sm me-2" onclick="refreshVoicemails()">
+                        <i class="fas fa-refresh"></i> Refresh
+                    </button>
+                    <button class="btn btn-outline-primary btn-sm me-2" onclick="showVoicemailSettings()">
+                        <i class="fas fa-cog"></i> Settings
+                    </button>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-success" onclick="markAllAsRead()">
+                            <i class="fas fa-check-double"></i> Mark All Read
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteAllVoicemails()">
+                            <i class="fas fa-trash"></i> Delete All
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="voicemailsContainer">
+                    <!-- Voicemails will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Voicemail Statistics -->
+<div class="row">
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total Messages</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="totalMessages">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-voicemail fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Unread Messages</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="unreadMessages">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-envelope fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Storage Used</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="storageUsed">0 MB</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-hdd fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            This Week</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800" id="thisWeekMessages">0</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-week fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentVoicemailId = null;
+let voicemails = [];
+
+function refreshVoicemails() {
+    loadVoicemails();
+    toast.success('Voicemails refreshed');
+}
+
+function showVoicemailSettings() {
+    new bootstrap.Modal(document.getElementById('voicemailSettingsModal')).show();
+}
+
+function saveVoicemailSettings() {
+    const settings = {
+        greeting_type: document.getElementById('greetingType').value,
+        ring_time: document.getElementById('ringTime').value,
+        email_notifications: document.getElementById('emailNotifications').checked,
+        auto_delete_days: document.getElementById('autoDeleteDays').value,
+        pin: document.getElementById('voicemailPin').value
+    };
+    
+    const spinner = document.getElementById('saveSettingsSpinner');
+    spinner.style.display = 'inline-block';
+    
+    fetch('/api/voicemail-settings', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(settings)
+    })
+    .then(response => response.json())
+    .then(data => {
+        spinner.style.display = 'none';
+        if (data.success) {
+            toast.success('Voicemail settings saved successfully');
+            bootstrap.Modal.getInstance(document.getElementById('voicemailSettingsModal')).hide();
+        } else {
+            toast.error('Error saving settings: ' + data.error);
+        }
+    })
+    .catch(error => {
+        spinner.style.display = 'none';
+        console.error('Error:', error);
+        toast.error('Error saving settings');
+    });
+}
+
+function loadVoicemails() {
+    fetch('/api/voicemails')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                voicemails = data.voicemails;
+                renderVoicemails();
+                updateStatistics();
+            } else {
+                toast.error('Error loading voicemails');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            toast.error('Error loading voicemails');
+        });
+}
+
+function renderVoicemails() {
+    const container = document.getElementById('voicemailsContainer');
+    
+    if (voicemails.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-5">
+                <i class="fas fa-voicemail fa-3x text-muted mb-3"></i>
+                <h5 class="text-muted">No Voicemails</h5>
+                <p class="text-muted">You have no voicemail messages.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    const voicemailsHtml = voicemails.map(voicemail => `
+        <div class="d-flex justify-content-between align-items-center p-3 border-bottom voicemail-item ${voicemail.is_read ? '' : 'bg-light'}" data-id="${voicemail.id}">
+            <div class="d-flex align-items-center">
+                <div class="me-3">
+                    <i class="fas fa-voicemail fa-2x ${voicemail.is_read ? 'text-muted' : 'text-primary'}"></i>
+                </div>
+                <div>
+                    <div class="fw-bold">${voicemail.caller_name || 'Unknown Caller'}</div>
+                    <div class="text-muted">${voicemail.caller_number}</div>
+                    <small class="text-muted">
+                        ${new Date(voicemail.created_at).toLocaleString()} • 
+                        ${voicemail.duration || 0}s
+                        ${voicemail.is_read ? ' • Read' : ' • Unread'}
+                    </small>
+                </div>
+            </div>
+            <div class="btn-group" role="group">
+                <button class="btn btn-sm btn-outline-primary" onclick="playVoicemail(${voicemail.id})" title="Play">
+                    <i class="fas fa-play"></i>
+                </button>
+                ${!voicemail.is_read ? `
+                    <button class="btn btn-sm btn-outline-success" onclick="markAsRead(${voicemail.id})" title="Mark as Read">
+                        <i class="fas fa-check"></i>
+                    </button>
+                ` : ''}
+                <button class="btn btn-sm btn-outline-info" onclick="downloadVoicemail(${voicemail.id})" title="Download">
+                    <i class="fas fa-download"></i>
+                </button>
+                <button class="btn btn-sm btn-outline-danger" onclick="deleteVoicemail(${voicemail.id})" title="Delete">
+                    <i class="fas fa-trash"></i>
+                </button>
+            </div>
+        </div>
+    `).join('');
+    
+    container.innerHTML = voicemailsHtml;
+}
+
+function updateStatistics() {
+    const total = voicemails.length;
+    const unread = voicemails.filter(v => !v.is_read).length;
+    const thisWeek = voicemails.filter(v => {
+        const date = new Date(v.created_at);
+        const weekAgo = new Date();
+        weekAgo.setDate(weekAgo.getDate() - 7);
+        return date >= weekAgo;
+    }).length;
+    
+    document.getElementById('totalMessages').textContent = total;
+    document.getElementById('unreadMessages').textContent = unread;
+    document.getElementById('thisWeekMessages').textContent = thisWeek;
+    document.getElementById('storageUsed').textContent = `${Math.round(total * 0.5)} MB`;
+}
+
+function playVoicemail(voicemailId) {
+    const voicemail = voicemails.find(v => v.id == voicemailId);
+    if (!voicemail) {
+        toast.error('Voicemail not found');
+        return;
+    }
+    
+    currentVoicemailId = voicemailId;
+    document.getElementById('callerName').textContent = voicemail.caller_name || 'Unknown Caller';
+    document.getElementById('callTime').textContent = new Date(voicemail.created_at).toLocaleString();
+    
+    // For demo purposes, use a sample audio file
+    const audioPlayer = document.getElementById('audioPlayer');
+    audioPlayer.src = '/static/sample-voicemail.mp3'; // This would be the actual voicemail file
+    
+    new bootstrap.Modal(document.getElementById('audioPlayerModal')).show();
+    
+    // Mark as read when played
+    if (!voicemail.is_read) {
+        markAsRead(voicemailId);
+    }
+}
+
+function markAsRead(voicemailId) {
+    fetch('/api/mark-voicemail-read', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ voicemail_id: voicemailId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            toast.success('Voicemail marked as read');
+            loadVoicemails();
+        } else {
+            toast.error('Error marking voicemail as read');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        toast.error('Error marking voicemail as read');
+    });
+}
+
+function markAllAsRead() {
+    if (confirm('Mark all voicemails as read?')) {
+        const unreadVoicemails = voicemails.filter(v => !v.is_read);
+        let processed = 0;
+        
+        unreadVoicemails.forEach(voicemail => {
+            fetch('/api/mark-voicemail-read', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ voicemail_id: voicemail.id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                processed++;
+                if (processed === unreadVoicemails.length) {
+                    toast.success('All voicemails marked as read');
+                    loadVoicemails();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                processed++;
+            });
+        });
+    }
+}
+
+function deleteVoicemail(voicemailId) {
+    if (confirm('Are you sure you want to delete this voicemail?')) {
+        fetch('/api/delete-voicemail', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ voicemail_id: voicemailId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                toast.success('Voicemail deleted successfully');
+                loadVoicemails();
+            } else {
+                toast.error('Error deleting voicemail: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            toast.error('Error deleting voicemail');
+        });
+    }
+}
+
+function deleteAllVoicemails() {
+    if (confirm('Are you sure you want to delete ALL voicemails? This action cannot be undone.')) {
+        let processed = 0;
+        
+        voicemails.forEach(voicemail => {
+            fetch('/api/delete-voicemail', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ voicemail_id: voicemail.id })
+            })
+            .then(response => response.json())
+            .then(data => {
+                processed++;
+                if (processed === voicemails.length) {
+                    toast.success('All voicemails deleted successfully');
+                    loadVoicemails();
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                processed++;
+            });
+        });
+    }
+}
+
+function downloadVoicemail(voicemailId = null) {
+    const id = voicemailId || currentVoicemailId;
+    if (!id) {
+        toast.error('No voicemail selected');
+        return;
+    }
+    
+    const voicemail = voicemails.find(v => v.id == id);
+    if (!voicemail) {
+        toast.error('Voicemail not found');
+        return;
+    }
+    
+    // For demo purposes, create a download link
+    const link = document.createElement('a');
+    link.href = '/static/sample-voicemail.mp3'; // This would be the actual voicemail file
+    link.download = `voicemail-${voicemail.caller_number}-${new Date(voicemail.created_at).toISOString().split('T')[0]}.mp3`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    toast.success('Voicemail download started');
+}
+
+// Load voicemails when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    loadVoicemails();
+});
+</script>
+{% endblock %} 

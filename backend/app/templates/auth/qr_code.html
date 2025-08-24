@@ -1,0 +1,105 @@
+<!-- -----------------------------------------------------------------------------
+Project: Unified Communication Platform
+Author: Abubacker Siddiq M
+Copyright (c) 2025 Abubacker Siddiq M
+License: MIT License (See LICENSE file for details)
+------------------------------------------------------------------------------- -->
+
+{% extends "base.html" %}
+
+{% block title %}QR Code - 3CX Duplicate{% endblock %}
+
+{% block page_title %}Mobile App QR Code{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Mobile App Provisioning</h6>
+            </div>
+            <div class="card-body text-center">
+                <div class="mb-4">
+                    <h5>Scan this QR code with your mobile app</h5>
+                    <p class="text-muted">This QR code contains your authentication credentials for the mobile app.</p>
+                </div>
+                
+                <div class="mb-4">
+                    <img src="data:image/png;base64,{{ qr_image }}" alt="QR Code" class="img-fluid" style="max-width: 300px;">
+                </div>
+                
+                <div class="alert alert-info">
+                    <h6><i class="fas fa-info-circle me-2"></i>How to use:</h6>
+                    <ol class="text-start mb-0">
+                        <li>Download the UCP mobile app</li>
+                        <li>Open the app and select "Scan QR Code"</li>
+                        <li>Point your camera at this QR code</li>
+                        <li>You'll be automatically logged in</li>
+                    </ol>
+                </div>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card border-left-primary">
+                            <div class="card-body">
+                                <h6 class="text-primary">User Information</h6>
+                                <p class="mb-1"><strong>Name:</strong> {{ current_user.full_name }}</p>
+                                <p class="mb-1"><strong>Email:</strong> {{ current_user.email }}</p>
+                                <p class="mb-0"><strong>Username:</strong> {{ current_user.username }}</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card border-left-success">
+                            <div class="card-body">
+                                <h6 class="text-success">QR Code Data</h6>
+                                <p class="mb-1"><strong>Token:</strong> {{ qr_data.token[:8] }}...</p>
+                                <p class="mb-1"><strong>Platform:</strong> {{ qr_data.platform }}</p>
+                                <p class="mb-0"><strong>Generated:</strong> {{ qr_data.generated_at.strftime('%Y-%m-%d %H:%M') if qr_data.generated_at else 'Now' }}</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="mt-4">
+                    <button class="btn btn-primary me-2" onclick="refreshQRCode()">
+                        <i class="fas fa-sync-alt me-2"></i>Generate New QR Code
+                    </button>
+                    <button class="btn btn-outline-secondary" onclick="downloadQRCode()">
+                        <i class="fas fa-download me-2"></i>Download QR Code
+                    </button>
+                </div>
+                
+                <div class="mt-4">
+                    <small class="text-muted">
+                        <i class="fas fa-shield-alt me-1"></i>
+                        This QR code is valid for 24 hours and can only be used once.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function refreshQRCode() {
+    location.reload();
+}
+
+function downloadQRCode() {
+    const link = document.createElement('a');
+    link.download = 'ucp-qr-code.png';
+    link.href = 'data:image/png;base64,{{ qr_image }}';
+    link.click();
+}
+
+// Auto-refresh QR code every 5 minutes
+setTimeout(function() {
+    if (confirm('QR code will expire soon. Generate a new one?')) {
+        refreshQRCode();
+    }
+}, 5 * 60 * 1000);
+</script>
+{% endblock %} 

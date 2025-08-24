@@ -1,0 +1,181 @@
+<!-- -----------------------------------------------------------------------------
+Project: Unified Communication Platform
+Author: Abubacker Siddiq M
+Copyright (c) 2025 Abubacker Siddiq M
+License: MIT License (See LICENSE file for details)
+------------------------------------------------------------------------------- -->
+
+{% extends "base.html" %}
+
+{% block title %}Admin Dashboard - UCP Platform{% endblock %}
+
+{% block page_title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total Users</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_users }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Active Users</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ active_users }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-user-check fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Total Calls</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ total_calls }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-phone fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Today's Calls</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ today_calls }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-calendar-day fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Recent Calls</h6>
+            </div>
+            <div class="card-body">
+                {% if recent_calls %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered">
+                            <thead>
+                                <tr>
+                                    <th>Caller</th>
+                                    <th>Callee</th>
+                                    <th>Status</th>
+                                    <th>Duration</th>
+                                    <th>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for call in recent_calls %}
+                                <tr>
+                                    <td>{{ call.caller.full_name or call.caller.username }}</td>
+                                    <td>{{ call.callee.full_name or call.callee.username }}</td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if call.status == 'answered' else 'warning' if call.status == 'ringing' else 'danger' if call.status == 'missed' else 'secondary' }}">
+                                            {{ call.status.title() }}
+                                        </span>
+                                    </td>
+                                    <td>{{ call.duration or 'N/A' }}</td>
+                                    <td>{{ call.created_at.strftime('%H:%M') }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <p class="text-muted">No recent calls</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a href="{{ url_for('admin.manage_users') }}" class="btn btn-outline-primary">
+                        <i class="fas fa-users me-2"></i>Manage Users
+                    </a>
+                    <a href="{{ url_for('admin.sip_trunks') }}" class="btn btn-outline-success">
+                        <i class="fas fa-phone me-2"></i>SIP Trunks
+                    </a>
+                    <a href="{{ url_for('admin.call_monitoring') }}" class="btn btn-outline-info">
+                        <i class="fas fa-monitor me-2"></i>Call Monitoring
+                    </a>
+                    <a href="{{ url_for('admin.manage_queues') }}" class="btn btn-outline-warning">
+                        <i class="fas fa-list me-2"></i>Call Queues
+                    </a>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">System Status</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="h4 text-success">{{ total_voicemails }}</div>
+                        <small class="text-muted">Total Voicemails</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="h4 text-warning">{{ unread_voicemails }}</div>
+                        <small class="text-muted">Unread</small>
+                    </div>
+                </div>
+                <hr>
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="h4 text-info">0</div>
+                        <small class="text-muted">Active Calls</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="h4 text-primary">0</div>
+                        <small class="text-muted">Online Users</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

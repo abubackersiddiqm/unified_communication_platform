@@ -1,0 +1,445 @@
+<!-- -----------------------------------------------------------------------------
+Project: Unified Communication Platform
+Author: Abubacker Siddiq M
+Copyright (c) 2025 Abubacker Siddiq M
+License: MIT License (See LICENSE file for details)
+------------------------------------------------------------------------------- -->
+
+{% extends "base.html" %}
+
+{% block title %}SIP Trunks - Admin{% endblock %}
+
+{% block page_title %}SIP Trunk Management{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{{ url_for('admin.add_sip_trunk') }}" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Add SIP Trunk
+    </a>
+    <button type="button" class="btn btn-outline-secondary" onclick="testConnections()" id="testConnectionsBtn">
+        <i class="fas fa-plug"></i> Test Connections
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">SIP Trunk Configuration</h6>
+            </div>
+            <div class="card-body">
+                {% if trunks %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="sipTrunksTable">
+                            <thead>
+                                <tr>
+                                    <th>Name</th>
+                                    <th>Provider</th>
+                                    <th>SIP Server</th>
+                                    <th>Port</th>
+                                    <th>Username</th>
+                                    <th>Status</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for trunk in trunks %}
+                                <tr data-trunk-id="{{ trunk.id }}">
+                                    <td>
+                                        <strong>{{ trunk.name }}</strong>
+                                        {% if trunk.name == 'Main Trunk' %}
+                                            <span class="badge bg-primary ms-2">Primary</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ trunk.provider }}</td>
+                                    <td>
+                                        <code>{{ trunk.sip_server }}</code>
+                                    </td>
+                                    <td>{{ trunk.sip_port }}</td>
+                                    <td>
+                                        {% if trunk.username %}
+                                            <span class="text-muted">{{ trunk.username[:8] }}***</span>
+                                        {% else %}
+                                            <span class="text-muted">Not set</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if trunk.is_active %}
+                                            <span class="badge bg-success">Active</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">Inactive</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-outline-primary" onclick="editTrunk({{ trunk.id }})">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-info" onclick="testTrunk({{ trunk.id }})">
+                                                <i class="fas fa-plug"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-{{ 'warning' if trunk.is_active else 'success' }}" 
+                                                    onclick="toggleTrunk({{ trunk.id }}, {{ trunk.is_active|lower }})">
+                                                <i class="fas fa-{{ 'pause' if trunk.is_active else 'play' }}"></i>
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteTrunk({{ trunk.id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-phone fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No SIP Trunks Configured</h5>
+                        <p class="text-muted">Configure your first SIP trunk to enable external calling.</p>
+                        <a href="{{ url_for('admin.add_sip_trunk') }}" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Add SIP Trunk
+                        </a>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- SIP Trunk Info Card -->
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Your SIP Trunk Number</h6>
+            </div>
+            <div class="card-body">
+                <div class="text-center">
+                    <h3 class="text-primary mb-3">020787xxxx5</h3>
+                    <p class="text-muted">This is your main SIP trunk number for external calls</p>
+                    <div class="alert alert-info">
+                        <i class="fas fa-info-circle me-2"></i>
+                        <strong>Note:</strong> This number will be used as the caller ID for outbound calls when no specific trunk is selected.
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-lg-6">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">SIP Trunk Statistics</h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="h4 text-primary">{{ trunks|selectattr('is_active')|list|length }}</div>
+                        <small class="text-muted">Active Trunks</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="h4 text-success">{{ trunks|length }}</div>
+                        <small class="text-muted">Total Trunks</small>
+                    </div>
+                </div>
+                <hr>
+                <div class="row text-center">
+                    <div class="col-6">
+                        <div class="h4 text-warning">0</div>
+                        <small class="text-muted">Failed Calls</small>
+                    </div>
+                    <div class="col-6">
+                        <div class="h4 text-info">0</div>
+                        <small class="text-muted">Total Calls</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test Results Modal -->
+<div class="modal fade" id="testResultsModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">SIP Trunk Test Results</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="testResultsContent">
+                    <!-- Test results will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script type="text/javascript">
+// Simple function definitions
+function editTrunk(trunkId) {
+    alert('Edit trunk feature coming soon!');
+}
+
+function testTrunk(trunkId) {
+    alert('Testing SIP trunk connection...');
+    
+    fetch('/api/test-sip-trunk', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ trunk_id: trunkId })
+    })
+    .then(function(response) {
+        return response.json();
+    })
+    .then(function(data) {
+        if (data.success) {
+            alert('SIP trunk test successful!');
+        } else {
+            alert('SIP trunk test failed: ' + data.error);
+        }
+    })
+    .catch(function(error) {
+        console.error('Error:', error);
+        alert('Error testing SIP trunk');
+    });
+}
+
+function toggleTrunk(trunkId, isActive) {
+    var action = isActive ? 'deactivate' : 'activate';
+    if (confirm('Are you sure you want to ' + action + ' this SIP trunk?')) {
+        fetch('/api/toggle-sip-trunk', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ trunk_id: trunkId })
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error toggling SIP trunk: ' + data.error);
+            }
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            alert('Error toggling SIP trunk');
+        });
+    }
+}
+
+function deleteTrunk(trunkId) {
+    if (confirm('Are you sure you want to delete this SIP trunk? This action cannot be undone.')) {
+        fetch('/api/delete-sip-trunk', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ trunk_id: trunkId })
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting SIP trunk: ' + data.error);
+            }
+        })
+        .catch(function(error) {
+            console.error('Error:', error);
+            alert('Error deleting SIP trunk');
+        });
+    }
+}
+
+function testConnections() {
+    console.log('testConnections() function called');
+    
+    var trunkRows = document.querySelectorAll('#sipTrunksTable tbody tr[data-trunk-id]');
+    console.log('Found trunk rows:', trunkRows.length);
+    
+    if (trunkRows.length === 0) {
+        alert('No SIP trunks to test.');
+        return;
+    }
+    
+    var resultsContent = document.getElementById('testResultsContent');
+    if (!resultsContent) {
+        alert('Error: Test results modal not found');
+        return;
+    }
+    
+    resultsContent.innerHTML = '<div class="text-center"><i class="fas fa-spinner fa-spin fa-2x"></i><p>Testing all SIP trunk connections...</p></div>';
+    
+    var modalElement = document.getElementById('testResultsModal');
+    if (!modalElement) {
+        alert('Error: Test results modal not found');
+        return;
+    }
+    
+    var modal = new bootstrap.Modal(modalElement);
+    modal.show();
+    
+    var results = [];
+    var completedTests = 0;
+    
+    for (var i = 0; i < trunkRows.length; i++) {
+        var row = trunkRows[i];
+        var trunkId = row.getAttribute('data-trunk-id');
+        var trunkName = row.querySelector('td:first-child strong').textContent;
+        var trunkProvider = row.querySelector('td:nth-child(2)').textContent;
+        var trunkServer = row.querySelector('td:nth-child(3) code').textContent;
+        
+        console.log('Testing trunk ' + (i + 1) + ':', { trunkId: trunkId, trunkName: trunkName, trunkProvider: trunkProvider, trunkServer: trunkServer });
+        
+        if (trunkId) {
+            fetch('/api/test-sip-trunk', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ trunk_id: trunkId })
+            })
+            .then(function(response) {
+                console.log('Response for trunk ' + trunkId + ':', response.status);
+                return response.json();
+            })
+            .then(function(data) {
+                console.log('Data for trunk ' + trunkId + ':', data);
+                completedTests++;
+                
+                var result = {
+                    trunkId: trunkId,
+                    trunkName: trunkName,
+                    trunkProvider: trunkProvider,
+                    trunkServer: trunkServer,
+                    success: data.success,
+                    message: data.success ? (data.message || 'Connection successful') : (data.error || 'Connection failed'),
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                
+                results.push(result);
+                updateTestResults(results);
+                
+                if (completedTests === trunkRows.length) {
+                    showFinalSummary(results);
+                }
+            })
+            .catch(function(error) {
+                console.error('Error testing trunk ' + trunkId + ':', error);
+                completedTests++;
+                
+                var result = {
+                    trunkId: trunkId,
+                    trunkName: trunkName,
+                    trunkProvider: trunkProvider,
+                    trunkServer: trunkServer,
+                    success: false,
+                    message: 'Network error: ' + error.message,
+                    timestamp: new Date().toLocaleTimeString()
+                };
+                
+                results.push(result);
+                updateTestResults(results);
+                
+                if (completedTests === trunkRows.length) {
+                    showFinalSummary(results);
+                }
+            });
+        }
+    }
+}
+
+function updateTestResults(results) {
+    var resultsContent = document.getElementById('testResultsContent');
+    
+    var html = '<div class="table-responsive"><table class="table table-sm">';
+    html += '<thead><tr><th>Trunk</th><th>Provider</th><th>Server</th><th>Status</th><th>Message</th><th>Time</th></tr></thead><tbody>';
+    
+    for (var i = 0; i < results.length; i++) {
+        var result = results[i];
+        var statusClass = result.success ? 'success' : 'danger';
+        var statusIcon = result.success ? 'fa-check-circle' : 'fa-times-circle';
+        
+        html += '<tr>';
+        html += '<td><strong>' + result.trunkName + '</strong></td>';
+        html += '<td>' + result.trunkProvider + '</td>';
+        html += '<td><code>' + result.trunkServer + '</code></td>';
+        html += '<td><span class="badge bg-' + statusClass + '"><i class="fas ' + statusIcon + '"></i> ' + (result.success ? 'Success' : 'Failed') + '</span></td>';
+        html += '<td>' + result.message + '</td>';
+        html += '<td><small>' + result.timestamp + '</small></td>';
+        html += '</tr>';
+    }
+    
+    html += '</tbody></table></div>';
+    resultsContent.innerHTML = html;
+}
+
+function showFinalSummary(results) {
+    var successCount = 0;
+    for (var i = 0; i < results.length; i++) {
+        if (results[i].success) {
+            successCount++;
+        }
+    }
+    var totalCount = results.length;
+    
+    var alertClass = 'success';
+    var message = 'All connections are working!';
+    
+    if (successCount === 0) {
+        alertClass = 'danger';
+        message = 'All connections failed.';
+    } else if (successCount < totalCount) {
+        alertClass = 'warning';
+        message = 'Some connections have issues.';
+    }
+    
+    var summaryHtml = '<div class="alert alert-' + alertClass + ' mb-3">' +
+        '<h6><i class="fas fa-info-circle"></i> Test Summary</h6>' +
+        '<p class="mb-0"><strong>' + successCount + '</strong> out of <strong>' + totalCount + '</strong> SIP trunks tested successfully. ' + message + '</p>' +
+        '</div>';
+    
+    var resultsContent = document.getElementById('testResultsContent');
+    resultsContent.innerHTML = summaryHtml + resultsContent.innerHTML;
+}
+
+// Add event listener when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM loaded, setting up event listeners');
+    
+    var testBtn = document.getElementById('testConnectionsBtn');
+    if (testBtn) {
+        console.log('Test button found, adding event listener');
+        testBtn.addEventListener('click', function() {
+            console.log('Button clicked via event listener');
+            testConnections();
+        });
+    } else {
+        console.error('Test button not found');
+    }
+    
+    if (typeof testConnections === 'function') {
+        console.log('testConnections function exists');
+    } else {
+        console.error('testConnections function does not exist');
+    }
+});
+</script>
+{% endblock %} 

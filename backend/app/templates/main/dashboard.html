@@ -1,0 +1,392 @@
+<!-- -----------------------------------------------------------------------------
+Project: Unified Communication Platform
+Author: Abubacker Siddiq M
+Copyright (c) 2025 Abubacker Siddiq M
+License: MIT License (See LICENSE file for details)
+------------------------------------------------------------------------------- -->
+
+{% extends "base.html" %}
+
+{% block title %}Dashboard - 3CX Duplicate{% endblock %}
+
+{% block page_title %}Dashboard{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-outline-secondary dropdown-toggle" data-bs-toggle="dropdown">
+        <i class="fas fa-circle status-indicator status-{{ current_user.status.lower() }}"></i>
+        {{ current_user.status }}
+    </button>
+    <ul class="dropdown-menu">
+        <li><a class="dropdown-item" href="#" onclick="updateStatus('Available')">
+            <i class="fas fa-circle text-success"></i> Available
+        </a></li>
+        <li><a class="dropdown-item" href="#" onclick="updateStatus('Away')">
+            <i class="fas fa-circle text-warning"></i> Away
+        </a></li>
+        <li><a class="dropdown-item" href="#" onclick="updateStatus('DND')">
+            <i class="fas fa-circle text-danger"></i> Do Not Disturb
+        </a></li>
+        <li><a class="dropdown-item" href="#" onclick="updateStatus('Busy')">
+            <i class="fas fa-circle text-secondary"></i> Busy
+        </a></li>
+    </ul>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Statistics Cards -->
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Recent Calls</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ recent_calls|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-phone fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Active Chats</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ user_chats|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-comments fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Unread Voicemails</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ unread_voicemails|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-voicemail fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Online Users</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ online_users|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-users fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Recent Calls -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Recent Calls</h6>
+                <a href="{{ url_for('main.phone') }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-phone"></i> Make Call
+                </a>
+            </div>
+            <div class="card-body">
+                {% if recent_calls %}
+                    <div class="list-group list-group-flush">
+                        {% for call in recent_calls %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">
+                                    {% if call.caller_id == current_user.id %}
+                                        <i class="fas fa-arrow-up text-success"></i> {{ call.callee.full_name }}
+                                    {% else %}
+                                        <i class="fas fa-arrow-down text-danger"></i> {{ call.caller.full_name }}
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">
+                                    {{ call.created_at.strftime('%Y-%m-%d %H:%M') }} • 
+                                    <span class="badge bg-{{ 'success' if call.status == 'answered' else 'secondary' }}">
+                                        {{ call.status.title() }}
+                                    </span>
+                                </small>
+                            </div>
+                            <div class="text-end">
+                                <small class="text-muted">{{ call.call_type.title() }}</small>
+                                {% if call.duration %}
+                                    <br><small class="text-muted">{{ call.duration }}s</small>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">No recent calls</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Chats -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Recent Chats</h6>
+                <a href="{{ url_for('main.chat') }}" class="btn btn-sm btn-primary">
+                    <i class="fas fa-comments"></i> New Chat
+                </a>
+            </div>
+            <div class="card-body">
+                {% if user_chats %}
+                    <div class="list-group list-group-flush">
+                        {% for chat in user_chats %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">
+                                    {% if chat.chat_type == 'direct' %}
+                                        {% for participant in chat.participants %}
+                                            {% if participant.id != current_user.id %}
+                                                {{ participant.full_name }}
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% else %}
+                                        {{ chat.name or 'Group Chat' }}
+                                    {% endif %}
+                                </div>
+                                <small class="text-muted">
+                                    {{ chat.updated_at.strftime('%Y-%m-%d %H:%M') }}
+                                </small>
+                            </div>
+                            <a href="{{ url_for('main.chat') }}?chat_id={{ chat.id }}" class="btn btn-sm btn-outline-primary">
+                                Open
+                            </a>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">No recent chats</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Unread Voicemails -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Unread Voicemails</h6>
+            </div>
+            <div class="card-body">
+                {% if unread_voicemails %}
+                    <div class="list-group list-group-flush">
+                        {% for vm in unread_voicemails %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">{{ vm.caller_name or vm.caller_number }}</div>
+                                <small class="text-muted">
+                                    {{ vm.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    {% if vm.duration %}
+                                        • {{ vm.duration }}s
+                                    {% endif %}
+                                </small>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary" onclick="playVoicemail({{ vm.id }})">
+                                    <i class="fas fa-play"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-success" onclick="markVoicemailRead({{ vm.id }})">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">No unread voicemails</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Online Users -->
+    <div class="col-lg-6 mb-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Online Users</h6>
+            </div>
+            <div class="card-body">
+                {% if online_users %}
+                    <div class="list-group list-group-flush">
+                        {% for user in online_users %}
+                        <div class="list-group-item d-flex justify-content-between align-items-center">
+                            <div>
+                                <div class="fw-bold">
+                                    <div class="status-indicator status-{{ user.status.lower() }}"></div>
+                                    {{ user.full_name }}
+                                </div>
+                                <small class="text-muted">@{{ user.username }}</small>
+                            </div>
+                            <div>
+                                <button class="btn btn-sm btn-outline-primary" onclick="startCall({{ user.id }})">
+                                    <i class="fas fa-phone"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-success" onclick="startChat({{ user.id }})">
+                                    <i class="fas fa-comments"></i>
+                                </button>
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+                {% else %}
+                    <p class="text-muted text-center">No online users</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Quick Actions -->
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Quick Actions</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('main.phone') }}" class="btn btn-primary btn-lg w-100">
+                            <i class="fas fa-phone fa-2x mb-2"></i><br>
+                            Make a Call
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('main.chat') }}" class="btn btn-success btn-lg w-100">
+                            <i class="fas fa-comments fa-2x mb-2"></i><br>
+                            Start Chat
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('main.contacts') }}" class="btn btn-info btn-lg w-100">
+                            <i class="fas fa-address-book fa-2x mb-2"></i><br>
+                            Manage Contacts
+                        </a>
+                    </div>
+                    <div class="col-md-3 mb-3">
+                        <a href="{{ url_for('main.voicemail') }}" class="btn btn-warning btn-lg w-100">
+                            <i class="fas fa-voicemail fa-2x mb-2"></i><br>
+                            Check Voicemail
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function updateStatus(status) {
+    fetch('/api/update-status', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: status })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+
+function startCall(userId) {
+    fetch('/api/initiate-call', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            callee_id: userId,
+            call_type: 'voice'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = '/phone?call_id=' + data.call_id;
+        }
+    });
+}
+
+function startChat(userId) {
+    fetch('/api/create-chat', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ 
+            participant_ids: [userId],
+            chat_type: 'direct'
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            window.location.href = '/chat?chat_id=' + data.chat.id;
+        }
+    });
+}
+
+function markVoicemailRead(voicemailId) {
+    fetch('/api/mark-voicemail-read', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ voicemail_id: voicemailId })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+
+function playVoicemail(voicemailId) {
+    // Implementation for playing voicemail audio
+    console.log('Playing voicemail:', voicemailId);
+}
+</script>
+{% endblock %} 
