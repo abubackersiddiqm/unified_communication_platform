@@ -1,0 +1,786 @@
+<!-- -----------------------------------------------------------------------------
+Project: Unified Communication Platform
+Author: Abubacker Siddiq M
+Copyright (c) 2025 Abubacker Siddiq M
+License: MIT License (See LICENSE file for details)
+------------------------------------------------------------------------------- -->
+
+{% extends "base.html" %}
+
+{% block title %}Phone - UCP{% endblock %}
+
+{% block page_title %}Phone{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-outline-primary active" onclick="showDialer()">
+        <i class="fas fa-phone"></i> Dialer
+    </button>
+    <button type="button" class="btn btn-outline-success" onclick="showInternational()">
+        <i class="fas fa-globe"></i> International
+    </button>
+    <button type="button" class="btn btn-outline-secondary" onclick="toggleContacts()">
+        <i class="fas fa-address-book"></i> Contacts
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Add Contact Modal -->
+<div class="modal fade" id="addContactModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Add New Contact</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addContactForm">
+                    <div class="mb-3">
+                        <label for="contactName" class="form-label">Name *</label>
+                        <input type="text" class="form-control" id="contactName" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contactPhone" class="form-label">Phone Number *</label>
+                        <input type="tel" class="form-control" id="contactPhone" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="contactEmail" class="form-label">Email</label>
+                        <input type="email" class="form-control" id="contactEmail">
+                    </div>
+                    <div class="mb-3">
+                        <label for="contactCompany" class="form-label">Company</label>
+                        <input type="text" class="form-control" id="contactCompany">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" onclick="saveContact()">
+                    <span class="loading-spinner" id="saveContactSpinner" style="display: none;"></span>
+                    Add Contact
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Call History Modal -->
+<div class="modal fade" id="callHistoryModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Call History</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="callHistoryContent">
+                    <!-- Call history will be loaded here -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- Phone Dialer -->
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-primary">Phone Dialer</h6>
+                <div class="btn-group" role="group">
+                    <button class="btn btn-sm btn-outline-primary" onclick="toggleDialer()" id="dialerBtn">
+                        <i class="fas fa-phone"></i> Dialer
+                    </button>
+                    <button class="btn btn-sm btn-outline-secondary" onclick="toggleContacts()" id="contactsBtn">
+                        <i class="fas fa-address-book"></i> Contacts
+                    </button>
+                    <button class="btn btn-sm btn-outline-info" onclick="toggleHistory()" id="historyBtn">
+                        <i class="fas fa-history"></i> History
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <!-- Dialer Interface -->
+                <div id="dialerInterface">
+                    <div class="phone-dialer text-center">
+                        <div class="mb-4">
+                            <input type="text" class="form-control form-control-lg text-center" id="phoneNumber" placeholder="Enter phone number" style="font-size: 24px;">
+                        </div>
+                        
+                        <!-- Number Pad -->
+                        <div class="row justify-content-center">
+                            <div class="col-4 mb-2">
+                                <button class="btn btn-light btn-lg w-100" onclick="appendNumber('1')">1</button>
+                            </div>
+                            <div class="col-4 mb-2">
+                                <button class="btn btn-light btn-lg w-100" onclick="appendNumber('2')">2</button>
+                            </div>
+                            <div class="col-4 mb-2">
+                                <button class="btn btn-light btn-lg w-100" onclick="appendNumber('3')">3</button>
+                            </div>
+                            <div class="col-4 mb-2">
+                                <button class="btn btn-light btn-lg w-100" onclick="appendNumber('4')">4</button>
+                            </div>
+                            <div class="col-4 mb-2">
+                                <button class="btn btn-light btn-lg w-100" onclick="appendNumber('5')">5</button>
+                            </div>
+                            <div class="col-4 mb-2">
+                                <button class="btn btn-light btn-lg w-100" onclick="appendNumber('6')">6</button>
+                            </div>
+                            <div class="col-4 mb-2">
+                                <button class="btn btn-light btn-lg w-100" onclick="appendNumber('7')">7</button>
+                            </div>
+                            <div class="col-4 mb-2">
+                                <button class="btn btn-light btn-lg w-100" onclick="appendNumber('8')">8</button>
+                            </div>
+                            <div class="col-4 mb-2">
+                                <button class="btn btn-light btn-lg w-100" onclick="appendNumber('9')">9</button>
+                            </div>
+                            <div class="col-4 mb-2">
+                                <button class="btn btn-light btn-lg w-100" onclick="appendNumber('*')">*</button>
+                            </div>
+                            <div class="col-4 mb-2">
+                                <button class="btn btn-light btn-lg w-100" onclick="appendNumber('0')">0</button>
+                            </div>
+                            <div class="col-4 mb-2">
+                                <button class="btn btn-light btn-lg w-100" onclick="appendNumber('#')">#</button>
+                            </div>
+                        </div>
+                        
+                        <!-- Call Controls -->
+                        <div class="row justify-content-center mt-3">
+                            <div class="col-4">
+                                <button class="btn btn-success btn-lg w-100" onclick="makeCall()">
+                                    <i class="fas fa-phone"></i> Call
+                                </button>
+                            </div>
+                            <div class="col-4">
+                                <button class="btn btn-info btn-lg w-100" onclick="makeVideoCall()">
+                                    <i class="fas fa-video"></i> Video
+                                </button>
+                            </div>
+                            <div class="col-4">
+                                <button class="btn btn-warning btn-lg w-100" onclick="clearNumber()">
+                                    <i class="fas fa-backspace"></i> Clear
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <!-- International Calling -->
+                        <div class="mt-4">
+                            <h6>International Calling</h6>
+                            <div class="input-group">
+                                <input type="text" class="form-control" id="internationalNumber" placeholder="+91 98765 43210">
+                                <button class="btn btn-outline-primary" onclick="makeInternationalCall()">
+                                    <i class="fas fa-globe"></i> International
+                                </button>
+                            </div>
+                            <small class="text-muted">Supported: +91 (India), +1 (US/Canada), +44 (UK), +61 (Australia)</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Call Display -->
+                <div id="callDisplay" style="display: none;">
+                    <div class="text-center">
+                        <h4 id="callStatus">Calling...</h4>
+                        <p id="callDuration">00:00</p>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-danger btn-lg" onclick="endCall()">
+                                <i class="fas fa-phone-slash"></i> End
+                            </button>
+                            <button class="btn btn-warning btn-lg" onclick="holdCall()">
+                                <i class="fas fa-pause"></i> Hold
+                            </button>
+                            <button class="btn btn-secondary btn-lg" onclick="toggleMute()">
+                                <i class="fas fa-microphone-slash"></i> Mute
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Contacts View -->
+                <div id="contactsView" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6>Contacts</h6>
+                        <button class="btn btn-primary btn-sm" onclick="showAddContactModal()">
+                            <i class="fas fa-plus"></i> Add Contact
+                        </button>
+                    </div>
+                    <div id="contactsList">
+                        <!-- Contacts will be loaded here -->
+                    </div>
+                </div>
+                
+                <!-- Call History View -->
+                <div id="historyView" style="display: none;">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6>Recent Calls</h6>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="refreshCallHistory()">
+                            <i class="fas fa-refresh"></i> Refresh
+                        </button>
+                    </div>
+                    <div id="callHistoryList">
+                        <!-- Call history will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Call Controls and Status -->
+    <div class="col-lg-4">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Call Controls</h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">Call Type</label>
+                    <div class="btn-group w-100" role="group">
+                        <input type="radio" class="btn-check" name="callType" id="voiceCall" value="voice" checked>
+                        <label class="btn btn-outline-primary" for="voiceCall">
+                            <i class="fas fa-phone"></i> Voice
+                        </label>
+                        <input type="radio" class="btn-check" name="callType" id="videoCall" value="video">
+                        <label class="btn btn-outline-primary" for="videoCall">
+                            <i class="fas fa-video"></i> Video
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Audio Settings</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="autoMute">
+                        <label class="form-check-label" for="autoMute">
+                            Auto-mute microphone
+                        </label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="echoCancellation">
+                        <label class="form-check-label" for="echoCancellation">
+                            Echo cancellation
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <label class="form-label">Call Recording</label>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="recordCall">
+                        <label class="form-check-label" for="recordCall">
+                            Record this call
+                        </label>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <h6>Quick Actions</h6>
+                    <div class="btn-group-vertical w-100" role="group">
+                        <button class="btn btn-outline-success mb-2" onclick="callContact('emergency')">
+                            <i class="fas fa-exclamation-triangle"></i> Emergency
+                        </button>
+                        <button class="btn btn-outline-info mb-2" onclick="callContact('voicemail')">
+                            <i class="fas fa-voicemail"></i> Voicemail
+                        </button>
+                        <button class="btn btn-outline-warning" onclick="callContact('operator')">
+                            <i class="fas fa-headset"></i> Operator
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Online Users -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Online Users</h6>
+            </div>
+            <div class="card-body">
+                <div id="onlineUsersList">
+                    <!-- Online users will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Video Call Modal -->
+<div class="modal fade" id="videoCallModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Video Call</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row">
+                    <div class="col-md-8">
+                        <video id="remoteVideo" autoplay playsinline style="width: 100%; height: 400px; background: #000;"></video>
+                    </div>
+                    <div class="col-md-4">
+                        <video id="localVideo" autoplay playsinline muted style="width: 100%; height: 200px; background: #333;"></video>
+                        <div class="mt-3">
+                            <div class="btn-group w-100" role="group">
+                                <button class="btn btn-danger" onclick="endCall()">
+                                    <i class="fas fa-phone-slash"></i> End
+                                </button>
+                                <button class="btn btn-warning" onclick="toggleMute()">
+                                    <i class="fas fa-microphone-slash"></i> Mute
+                                </button>
+                                <button class="btn btn-secondary" onclick="toggleVideo()">
+                                    <i class="fas fa-video-slash"></i> Video
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let currentCallId = null;
+let currentCallType = 'voice';
+let callStartTime = null;
+let callTimer = null;
+let localStream = null;
+let remoteStream = null;
+let peerConnection = null;
+
+function appendNumber(num) {
+    const input = document.getElementById('phoneNumber');
+    input.value += num;
+}
+
+function clearNumber() {
+    document.getElementById('phoneNumber').value = '';
+}
+
+function makeCall() {
+    console.log('Making call...');
+    const phoneNumber = document.getElementById('phoneNumber').value.trim();
+    if (!phoneNumber) {
+        toast.error('Please enter a phone number');
+        return;
+    }
+    
+    console.log('Phone number:', phoneNumber);
+    
+    // Check if it's an international number
+    if (phoneNumber.startsWith('+')) {
+        console.log('Making international call');
+        makeInternationalCall(phoneNumber);
+        return;
+    }
+    
+    // For external calls, use the external call API
+    showCallDisplay();
+    startCallTimer();
+    
+    console.log('Making external call to:', phoneNumber);
+    
+    fetch('/api/make-external-call', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            phone_number: phoneNumber,
+            call_type: currentCallType || 'voice'
+        })
+    })
+    .then(response => {
+        console.log('Call response status:', response.status);
+        return response.json();
+    })
+    .then(data => {
+        console.log('Call response data:', data);
+        if (data.success) {
+            currentCallId = data.call_id;
+            document.getElementById('callStatus').textContent = `Calling ${phoneNumber}...`;
+            toast.success(`Call initiated to ${phoneNumber} through SIP trunk`);
+        } else {
+            toast.error('Call failed: ' + data.error);
+            hideCallDisplay();
+            stopCallTimer();
+        }
+    })
+    .catch(error => {
+        console.error('Error making call:', error);
+        toast.error('Error making call: ' + error.message);
+        hideCallDisplay();
+        stopCallTimer();
+    });
+}
+
+function makeVideoCall() {
+    currentCallType = 'video';
+    makeCall();
+}
+
+function makeInternationalCall(number = null) {
+    const phoneNumber = number || document.getElementById('internationalNumber').value.trim();
+    if (!phoneNumber) {
+        toast.error('Please enter an international phone number');
+        return;
+    }
+    
+    if (!phoneNumber.startsWith('+')) {
+        toast.error('Please enter number with country code (e.g., +91 for India)');
+        return;
+    }
+    
+    showCallDisplay();
+    startCallTimer();
+    
+    fetch('/api/make-international-call', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+            destination: phoneNumber
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            currentCallId = data.call_id;
+            toast.success(`International call initiated to ${data.call.destination} through SIP trunk (020787xxxx5)`);
+        } else {
+            toast.error('Call failed: ' + data.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        toast.error('Error making international call: ' + error.message);
+    });
+}
+
+function callContact(phoneNumber) {
+    // Set the phone number in the dialer and make the call
+    document.getElementById('phoneNumber').value = phoneNumber;
+    toggleDialer(); // Switch to dialer view
+    makeCall();
+}
+
+function showCallDisplay() {
+    document.getElementById('dialerInterface').style.display = 'none';
+    document.getElementById('callDisplay').style.display = 'block';
+}
+
+function hideCallDisplay() {
+    document.getElementById('dialerInterface').style.display = 'block';
+    document.getElementById('callDisplay').style.display = 'none';
+}
+
+function endCall() {
+    if (currentCallId) {
+        fetch('/api/end-call', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ call_id: currentCallId })
+        });
+    }
+    
+    hideCallDisplay();
+    stopCallTimer();
+    $('#videoCallModal').modal('hide');
+    
+    // Stop WebRTC streams
+    if (localStream) {
+        localStream.getTracks().forEach(track => track.stop());
+    }
+}
+
+function holdCall() {
+    // Implementation for call hold
+    console.log('Call held');
+    toast.info('Call put on hold');
+}
+
+function startCallTimer() {
+    callStartTime = new Date();
+    callTimer = setInterval(updateCallDuration, 1000);
+}
+
+function stopCallTimer() {
+    if (callTimer) {
+        clearInterval(callTimer);
+        callTimer = null;
+    }
+}
+
+function updateCallDuration() {
+    if (callStartTime) {
+        const duration = Math.floor((new Date() - callStartTime) / 1000);
+        const minutes = Math.floor(duration / 60);
+        const seconds = duration % 60;
+        document.getElementById('callDuration').textContent = 
+            `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+    }
+}
+
+function showAddContactModal() {
+    document.getElementById('addContactForm').reset();
+    new bootstrap.Modal(document.getElementById('addContactModal')).show();
+}
+
+function saveContact() {
+    const data = {
+        name: document.getElementById('contactName').value,
+        phone: document.getElementById('contactPhone').value,
+        email: document.getElementById('contactEmail').value,
+        company: document.getElementById('contactCompany').value
+    };
+    
+    if (!data.name || !data.phone) {
+        toast.error('Name and phone are required');
+        return;
+    }
+    
+    const spinner = document.getElementById('saveContactSpinner');
+    spinner.style.display = 'inline-block';
+    
+    fetch('/api/add-contact', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        spinner.style.display = 'none';
+        if (data.success) {
+            toast.success('Contact added successfully');
+            bootstrap.Modal.getInstance(document.getElementById('addContactModal')).hide();
+            loadContacts();
+        } else {
+            toast.error('Error adding contact: ' + data.error);
+        }
+    })
+    .catch(error => {
+        spinner.style.display = 'none';
+        console.error('Error:', error);
+        toast.error('Error adding contact');
+    });
+}
+
+function toggleDialer() {
+    document.getElementById('dialerInterface').style.display = 'block';
+    document.getElementById('contactsView').style.display = 'none';
+    document.getElementById('historyView').style.display = 'none';
+    
+    document.getElementById('dialerBtn').classList.add('active');
+    document.getElementById('contactsBtn').classList.remove('active');
+    document.getElementById('historyBtn').classList.remove('active');
+}
+
+function toggleContacts() {
+    document.getElementById('dialerInterface').style.display = 'none';
+    document.getElementById('contactsView').style.display = 'block';
+    document.getElementById('historyView').style.display = 'none';
+    
+    document.getElementById('dialerBtn').classList.remove('active');
+    document.getElementById('contactsBtn').classList.add('active');
+    document.getElementById('historyBtn').classList.remove('active');
+    
+    loadContacts();
+}
+
+function toggleHistory() {
+    document.getElementById('dialerInterface').style.display = 'none';
+    document.getElementById('contactsView').style.display = 'none';
+    document.getElementById('historyView').style.display = 'block';
+    
+    document.getElementById('dialerBtn').classList.remove('active');
+    document.getElementById('contactsBtn').classList.remove('active');
+    document.getElementById('historyBtn').classList.add('active');
+    
+    loadCallHistory();
+}
+
+function loadContacts() {
+    fetch('/api/contacts')
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                const contactsList = document.getElementById('contactsList');
+                if (data.contacts.length === 0) {
+                    contactsList.innerHTML = '<p class="text-muted text-center">No contacts found</p>';
+                    return;
+                }
+                
+                const contactsHtml = data.contacts.map(contact => `
+                    <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                        <div>
+                            <div class="fw-bold">${contact.name}</div>
+                            <small class="text-muted">${contact.phone}</small>
+                            ${contact.company ? `<br><small class="text-muted">${contact.company}</small>` : ''}
+                        </div>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-sm btn-outline-primary" onclick="callContact('${contact.phone}')">
+                                <i class="fas fa-phone"></i>
+                            </button>
+                            <button class="btn btn-sm btn-outline-success" onclick="messageContact('${contact.phone}')">
+                                <i class="fas fa-comments"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+                
+                contactsList.innerHTML = contactsHtml;
+            } else {
+                toast.error('Error loading contacts');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            toast.error('Error loading contacts');
+        });
+}
+
+function loadCallHistory() {
+    // This would fetch from the API and populate the call history
+    const historyList = document.getElementById('callHistoryList');
+    historyList.innerHTML = '<p class="text-muted text-center">Loading call history...</p>';
+    
+    // Simulate loading call history
+    setTimeout(() => {
+        historyList.innerHTML = `
+            <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                <div>
+                    <div class="fw-bold">+91 98765 43210</div>
+                    <small class="text-muted">Today, 14:30 • 2m 15s</small>
+                </div>
+                <span class="badge bg-success">Answered</span>
+            </div>
+            <div class="d-flex justify-content-between align-items-center p-2 border-bottom">
+                <div>
+                    <div class="fw-bold">John Doe</div>
+                    <small class="text-muted">Yesterday, 16:45 • 45s</small>
+                </div>
+                <span class="badge bg-danger">Missed</span>
+            </div>
+        `;
+    }, 1000);
+}
+
+function refreshCallHistory() {
+    loadCallHistory();
+    toast.success('Call history refreshed');
+}
+
+function toggleMute() {
+    // Implementation for toggling microphone mute
+    const muteBtn = document.querySelector('button[onclick="toggleMute()"]');
+    const icon = muteBtn.querySelector('i');
+    
+    if (icon.classList.contains('fa-microphone-slash')) {
+        icon.classList.remove('fa-microphone-slash');
+        icon.classList.add('fa-microphone');
+        toast.info('Microphone unmuted');
+    } else {
+        icon.classList.remove('fa-microphone');
+        icon.classList.add('fa-microphone-slash');
+        toast.info('Microphone muted');
+    }
+}
+
+function toggleVideo() {
+    // Implementation for toggling video on/off
+    const videoBtn = document.querySelector('button[onclick="toggleVideo()"]');
+    const icon = videoBtn.querySelector('i');
+    
+    if (icon.classList.contains('fa-video-slash')) {
+        icon.classList.remove('fa-video-slash');
+        icon.classList.add('fa-video');
+        toast.info('Video enabled');
+    } else {
+        icon.classList.remove('fa-video');
+        icon.classList.add('fa-video-slash');
+        toast.info('Video disabled');
+    }
+}
+
+function messageContact(phoneNumber) {
+    // Redirect to chat with the number
+    window.location.href = `/chat?number=${encodeURIComponent(phoneNumber)}`;
+}
+
+// WebRTC functions
+async function initializeWebRTC() {
+    try {
+        localStream = await navigator.mediaDevices.getUserMedia({ 
+            video: currentCallType === 'video', 
+            audio: true 
+        });
+        
+        if (currentCallType === 'video') {
+            document.getElementById('localVideo').srcObject = localStream;
+        }
+        
+        // Initialize peer connection
+        peerConnection = new RTCPeerConnection({
+            iceServers: [
+                { urls: 'stun:stun.l.google.com:19302' }
+            ]
+        });
+        
+        // Add local stream to peer connection
+        localStream.getTracks().forEach(track => {
+            peerConnection.addTrack(track, localStream);
+        });
+        
+        // Handle remote stream
+        peerConnection.ontrack = (event) => {
+            remoteStream = event.streams[0];
+            document.getElementById('remoteVideo').srcObject = remoteStream;
+        };
+        
+    } catch (error) {
+        console.error('Error accessing media devices:', error);
+        toast.error('Error accessing camera/microphone. Please check permissions.');
+    }
+}
+
+// Initialize when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Check if there's a prefill number from contacts
+    const prefillNumber = '{{ prefill_number }}';
+    if (prefillNumber) {
+        document.getElementById('phoneNumber').value = prefillNumber;
+    }
+    
+    // Load recent calls
+    loadCallHistory();
+    
+    // Set up event listeners
+    document.getElementById('phoneNumber').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            makeCall();
+        }
+    });
+    
+    document.getElementById('internationalNumber').addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            makeInternationalCall();
+        }
+    });
+});
+</script>
+{% endblock %} 

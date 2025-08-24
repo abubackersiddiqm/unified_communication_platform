@@ -1,0 +1,65 @@
+<!-- -----------------------------------------------------------------------------
+Project: Unified Communication Platform
+Author: Abubacker Siddiq M
+Copyright (c) 2025 Abubacker Siddiq M
+License: MIT License (See LICENSE file for details)
+------------------------------------------------------------------------------- -->
+
+{% extends "base.html" %}
+
+{% block title %}Login - Unified Communication Platform{% endblock %}
+
+{% block auth_content %}
+<div class="container-fluid">
+    <div class="row justify-content-center align-items-center min-vh-100" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);">
+        <div class="col-md-6 col-lg-4">
+            <div class="card shadow-lg">
+                <div class="card-body p-5">
+                    <div class="text-center mb-4">
+                        <h2 class="text-primary">Unified Communication Platform</h2>
+                        <p class="text-muted">Sign in to your account</p>
+                    </div>
+                    
+                    <form method="POST">
+                        <div class="mb-3">
+                            <label for="username" class="form-label">Username</label>
+                            <input type="text" class="form-control" id="username" name="username" placeholder="Enter your username" required>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" class="form-control" id="password" name="password" placeholder="Enter your password" required>
+                        </div>
+                        
+                        <div class="mb-3 form-check">
+                            <input type="checkbox" class="form-check-input" id="remember" name="remember">
+                            <label class="form-check-label" for="remember">
+                                Remember me
+                            </label>
+                        </div>
+                        
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-primary btn-lg">Sign In</button>
+                        </div>
+                    </form>
+                    
+                    <div class="text-center mt-4">
+                        <p class="mb-0">Don't have an account? 
+                            <a href="{{ url_for('auth.register') }}" class="text-primary">Register here</a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+            {% if config['FLASK_ENV'] == 'demo' %}
+            <div style="position: absolute; top: 30px; right: 30px; z-index: 999; width: 300px;">
+                <div class="alert alert-info" role="alert">
+                    <h5 class="alert-heading">Demo Credentials</h5>
+                    <p>Username: <strong>demo</strong></p>
+                    <p>Password: <strong>demo123</strong></p>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,294 @@
+<!-- -----------------------------------------------------------------------------
+Project: Unified Communication Platform
+Author: Abubacker Siddiq M
+Copyright (c) 2025 Abubacker Siddiq M
+License: MIT License (See LICENSE file for details)
+------------------------------------------------------------------------------- -->
+
+{% extends "base.html" %}
+
+{% block title %}Call Monitoring - Admin{% endblock %}
+
+{% block page_title %}Call Monitoring{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <button type="button" class="btn btn-outline-primary" onclick="refreshCalls()">
+        <i class="fas fa-sync-alt"></i> Refresh
+    </button>
+    <button type="button" class="btn btn-outline-secondary" onclick="exportCalls()">
+        <i class="fas fa-download"></i> Export
+    </button>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <h6 class="m-0 font-weight-bold text-primary">Call History</h6>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="input-group">
+                            <select class="form-select" id="statusFilter">
+                                <option value="">All Status</option>
+                                <option value="initiated">Initiated</option>
+                                <option value="ringing">Ringing</option>
+                                <option value="answered">Answered</option>
+                                <option value="ended">Ended</option>
+                                <option value="missed">Missed</option>
+                                <option value="failed">Failed</option>
+                            </select>
+                            <button class="btn btn-outline-secondary" type="button" onclick="filterCalls()">
+                                <i class="fas fa-filter"></i>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                {% if calls %}
+                    <div class="table-responsive">
+                        <table class="table table-bordered" id="callsTable">
+                            <thead>
+                                <tr>
+                                    <th>Call ID</th>
+                                    <th>Caller</th>
+                                    <th>Callee</th>
+                                    <th>Type</th>
+                                    <th>Status</th>
+                                    <th>Duration</th>
+                                    <th>Start Time</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for call in calls %}
+                                <tr class="call-row" data-status="{{ call.status }}">
+                                    <td>
+                                        <code>{{ call.call_id[:8] }}...</code>
+                                    </td>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="avatar me-2">
+                                                {% if call.caller.avatar %}
+                                                    <img src="{{ call.caller.avatar }}" class="rounded-circle" width="30" height="30" alt="{{ call.caller.full_name }}">
+                                                {% else %}
+                                                    <div class="rounded-circle bg-primary text-white d-flex align-items-center justify-content-center" style="width: 30px; height: 30px; font-size: 12px;">
+                                                        {{ call.caller.first_name[0]|upper if call.caller.first_name else call.caller.username[0]|upper }}
+                                                    </div>
+                                                {% endif %}
+                                            </div>
+                                            <div>
+                                                <div class="fw-bold">{{ call.caller.full_name }}</div>
+                                                <small class="text-muted">{{ call.caller.phone_number or 'No phone' }}</small>
+                                            </div>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        {% if call.callee %}
+                                            <div class="d-flex align-items-center">
+                                                <div class="avatar me-2">
+                                                    {% if call.callee.avatar %}
+                                                        <img src="{{ call.callee.avatar }}" class="rounded-circle" width="30" height="30" alt="{{ call.callee.full_name }}">
+                                                    {% else %}
+                                                        <div class="rounded-circle bg-success text-white d-flex align-items-center justify-content-center" style="width: 30px; height: 30px; font-size: 12px;">
+                                                            {{ call.callee.first_name[0]|upper if call.callee.first_name else call.callee.username[0]|upper }}
+                                                        </div>
+                                                    {% endif %}
+                                                </div>
+                                                <div>
+                                                    <div class="fw-bold">{{ call.callee.full_name }}</div>
+                                                    <small class="text-muted">{{ call.callee.phone_number or 'No phone' }}</small>
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            <div>
+                                                <div class="fw-bold">{{ call.destination_number or 'External' }}</div>
+                                                <small class="text-muted">External call</small>
+                                            </div>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'info' if call.call_type == 'video' else 'primary' }}">
+                                            {{ call.call_type.title() }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span class="badge bg-{{ 'success' if call.status == 'answered' else 'warning' if call.status == 'ringing' else 'danger' if call.status in ['missed', 'failed'] else 'secondary' }}">
+                                            {{ call.status.title() }}
+                                        </span>
+                                    </td>
+                                    <td>
+                                        {% if call.duration %}
+                                            {{ call.duration }}s
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {{ call.start_time.strftime('%Y-%m-%d %H:%M') if call.start_time else call.created_at.strftime('%Y-%m-%d %H:%M') }}
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <button class="btn btn-sm btn-outline-info" onclick="viewCallDetails({{ call.id }})">
+                                                <i class="fas fa-eye"></i>
+                                            </button>
+                                            {% if call.recording_url %}
+                                            <button class="btn btn-sm btn-outline-primary" onclick="playRecording('{{ call.recording_url }}')">
+                                                <i class="fas fa-play"></i>
+                                            </button>
+                                            {% endif %}
+                                            <button class="btn btn-sm btn-outline-danger" onclick="deleteCall({{ call.id }})">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% else %}
+                    <div class="text-center py-5">
+                        <i class="fas fa-phone fa-3x text-muted mb-3"></i>
+                        <h5 class="text-muted">No Calls Found</h5>
+                        <p class="text-muted">No calls have been made yet.</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Call Statistics -->
+<div class="row">
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-left-primary shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-primary text-uppercase mb-1">
+                            Total Calls</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ calls|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-phone fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-left-success shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-success text-uppercase mb-1">
+                            Answered Calls</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ calls|selectattr('status', 'equalto', 'answered')|list|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-phone-volume fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-left-warning shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-warning text-uppercase mb-1">
+                            Missed Calls</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ calls|selectattr('status', 'equalto', 'missed')|list|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-phone-slash fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-3 col-md-6 mb-4">
+        <div class="card border-left-info shadow h-100 py-2">
+            <div class="card-body">
+                <div class="row no-gutters align-items-center">
+                    <div class="col mr-2">
+                        <div class="text-xs font-weight-bold text-info text-uppercase mb-1">
+                            Video Calls</div>
+                        <div class="h5 mb-0 font-weight-bold text-gray-800">{{ calls|selectattr('call_type', 'equalto', 'video')|list|length }}</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-video fa-2x text-gray-300"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function refreshCalls() {
+    location.reload();
+}
+
+function filterCalls() {
+    const status = document.getElementById('statusFilter').value;
+    const callRows = document.querySelectorAll('.call-row');
+    
+    callRows.forEach(row => {
+        if (!status || row.dataset.status === status) {
+            row.style.display = 'table-row';
+        } else {
+            row.style.display = 'none';
+        }
+    });
+}
+
+function viewCallDetails(callId) {
+    alert('View call details feature coming soon!');
+}
+
+function playRecording(recordingUrl) {
+    alert('Play recording feature coming soon!');
+}
+
+function deleteCall(callId) {
+    if (confirm('Are you sure you want to delete this call record? This action cannot be undone.')) {
+        fetch('/api/delete-call', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ call_id: callId })
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('Error deleting call: ' + data.error);
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Error deleting call');
+        });
+    }
+}
+
+function exportCalls() {
+    alert('Export calls feature coming soon!');
+}
+</script>
+{% endblock %} 

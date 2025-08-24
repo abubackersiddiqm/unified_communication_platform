@@ -1,0 +1,167 @@
+<!-- -----------------------------------------------------------------------------
+Project: Unified Communication Platform
+Author: Abubacker Siddiq M
+Copyright (c) 2025 Abubacker Siddiq M
+License: MIT License (See LICENSE file for details)
+------------------------------------------------------------------------------- -->
+
+{% extends "base.html" %}
+
+{% block title %}Add SIP Trunk - Admin{% endblock %}
+
+{% block page_title %}Add SIP Trunk{% endblock %}
+
+{% block page_actions %}
+<div class="btn-group" role="group">
+    <a href="{{ url_for('admin.sip_trunks') }}" class="btn btn-outline-secondary">
+        <i class="fas fa-arrow-left"></i> Back to SIP Trunks
+    </a>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">SIP Trunk Configuration</h6>
+            </div>
+            <div class="card-body">
+                <form method="POST">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">Trunk Name *</label>
+                                <input type="text" class="form-control" id="name" name="name" required 
+                                       placeholder="e.g., Main Trunk, Backup Trunk">
+                                <div class="form-text">A descriptive name for this SIP trunk</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="provider" class="form-label">Provider *</label>
+                                <input type="text" class="form-control" id="provider" name="provider" required 
+                                       placeholder="e.g., Twilio, Vonage, Local Provider">
+                                <div class="form-text">Your SIP trunk provider name</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="mb-3">
+                                <label for="sip_server" class="form-label">SIP Server *</label>
+                                <input type="text" class="form-control" id="sip_server" name="sip_server" required 
+                                       placeholder="e.g., sip.example.com, 192.168.1.100">
+                                <div class="form-text">SIP server hostname or IP address</div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="sip_port" class="form-label">SIP Port</label>
+                                <input type="number" class="form-control" id="sip_port" name="sip_port" 
+                                       value="5060" min="1" max="65535">
+                                <div class="form-text">Default: 5060</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">Username</label>
+                                <input type="text" class="form-control" id="username" name="username" 
+                                       placeholder="SIP username">
+                                <div class="form-text">SIP authentication username (if required)</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="password" class="form-label">Password</label>
+                                <input type="password" class="form-control" id="password" name="password" 
+                                       placeholder="SIP password">
+                                <div class="form-text">SIP authentication password (if required)</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="alert alert-info">
+                        <h6><i class="fas fa-info-circle me-2"></i>Your SIP Trunk Number</h6>
+                        <p class="mb-2"><strong>020787xxxx5</strong> - This is your main trunk number</p>
+                        <p class="mb-0">This number will be used as the caller ID for outbound calls through this trunk.</p>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between">
+                        <a href="{{ url_for('admin.sip_trunks') }}" class="btn btn-secondary">
+                            <i class="fas fa-times"></i> Cancel
+                        </a>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-save"></i> Add SIP Trunk
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Quick Setup Guide -->
+        <div class="card shadow mb-4">
+            <div class="card-header py-3">
+                <h6 class="m-0 font-weight-bold text-primary">Quick Setup Guide</h6>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Common SIP Providers:</h6>
+                        <ul class="list-unstyled">
+                            <li><strong>Twilio:</strong> sip.twilio.com:5060</li>
+                            <li><strong>Vonage:</strong> sip.nexmo.com:5060</li>
+                            <li><strong>Local:</strong> Your local SIP server IP</li>
+                        </ul>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>Testing Your Configuration:</h6>
+                        <ol>
+                            <li>Save the SIP trunk configuration</li>
+                            <li>Go to SIP Trunks page</li>
+                            <li>Click the "Test" button</li>
+                            <li>Check connection status</li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Auto-fill common providers
+document.getElementById('provider').addEventListener('change', function() {
+    const provider = this.value.toLowerCase();
+    const serverField = document.getElementById('sip_server');
+    const portField = document.getElementById('sip_port');
+    
+    if (provider.includes('twilio')) {
+        serverField.value = 'sip.twilio.com';
+        portField.value = '5060';
+    } else if (provider.includes('vonage') || provider.includes('nexmo')) {
+        serverField.value = 'sip.nexmo.com';
+        portField.value = '5060';
+    }
+});
+
+// Form validation
+document.querySelector('form').addEventListener('submit', function(e) {
+    const name = document.getElementById('name').value.trim();
+    const provider = document.getElementById('provider').value.trim();
+    const server = document.getElementById('sip_server').value.trim();
+    
+    if (!name || !provider || !server) {
+        e.preventDefault();
+        alert('Please fill in all required fields (marked with *)');
+        return false;
+    }
+});
+</script>
+{% endblock %} 
