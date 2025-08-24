@@ -26,7 +26,7 @@ jobs:
           pip install pycodestyle mypy sqlalchemy-stubs
       
       - name: Run pycodestyle (PEP8)
-      run: pycodestyle --config=setup.cfg .
+        run: pycodestyle --config=setup.cfg .
       
       - name: Run mypy (Type Check)
-      run: mypy --config-file setup.cfg .
+        run: mypy --config-file setup.cfg .
